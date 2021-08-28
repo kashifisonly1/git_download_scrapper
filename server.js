@@ -210,26 +210,24 @@ async function process_main_categories() {
 			let data = await ft.text();
 			let $ = cheerio.load(data);
 			$(".flcats a").each(function(){
-				CreateCategory({
+				let data = CreateCategory({
 					name:$(this).text().trim(),
 					slug:$(this).attr("href").split("/").reverse()[0],
 					platform:platforms[pl_i].id,
 					parentCategory:platforms[pl_i].categories[c_i].id
 				})
-				.then((data)=>{
-					platforms[pl_i].categories[c_i].categories.push({
-						name:data.name,
-						slug:data.slug,
-						programs:[],
-						id:data._id
-					});					
-					data = await load_programs(platform.name.toLowerCase(),category.slug);
-					platforms[pl_i].categories[c_i].programs = data;
-					for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
-						platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
-					console.log("category procesed: ",platform.name,category.name);
-					write_to_file();
-				})
+				platforms[pl_i].categories[c_i].categories.push({
+					name:data.name,
+					slug:data.slug,
+					programs:[],
+					id:data._id
+				});					
+				data = await load_programs(platform.name.toLowerCase(),category.slug);
+				platforms[pl_i].categories[c_i].programs = data;
+				for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
+					platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
+				console.log("category procesed: ",platform.name,category.name);
+				write_to_file();
 			});
 		}
 	}
@@ -298,7 +296,7 @@ async function process_all_programs() {
 				platforms[i].categories[j].programs[x].platform = platforms[i].id;
 				platforms[i].categories[j].programs[x].parentCategory = platforms[i].categories[j].id;
 				platforms[i].categories[j].programs[x].subCategory = "";
-				CreateProgram(platforms[i].categories[j].programs[x]);
+				await CreateProgram(platforms[i].categories[j].programs[x]);
 			}
 			write_to_file();
 			for(let k = 0; k<platforms[i].categories[j].categories.length; k++){
@@ -338,7 +336,7 @@ async function process_all_programs() {
 					platforms[i].categories[j].categories[k].programs[x].platform = platforms[i].id;
 					platforms[i].categories[j].categories[k].programs[x].parentCategory = platforms[i].categories[j].id;
 					platforms[i].categories[j].categories[k].programs[x].subCategory = platforms[i].categories[j].categories[k].id;
-					CreateProgram(platforms[i].categories[j].categories[k].programs[x]);
+					await CreateProgram(platforms[i].categories[j].categories[k].programs[x]);
 				}
 				write_to_file();
 			}
