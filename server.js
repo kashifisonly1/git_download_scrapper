@@ -209,10 +209,11 @@ async function process_main_categories() {
 			let ft = await fetch(`https://en.download.it/${platform.name.toLowerCase()}/${category.slug}`)
 			let data = await ft.text();
 			let $ = cheerio.load(data);
-			$(".flcats a").each(function(){
-				let data = CreateCategory({
-					name:$(this).text().trim(),
-					slug:$(this).attr("href").split("/").reverse()[0],
+			let ddd = $(".flcats a");
+			for(let l = 0; l<ddd.length; l++){
+				let data = await CreateCategory({
+					name:$(ddd[l]).text().trim(),
+					slug:$(ddd[l]).attr("href").split("/").reverse()[0],
 					platform:platforms[pl_i].id,
 					parentCategory:platforms[pl_i].categories[c_i].id
 				})
@@ -222,13 +223,13 @@ async function process_main_categories() {
 					programs:[],
 					id:data._id
 				});					
-				data = await load_programs(platform.name.toLowerCase(),category.slug);
-				platforms[pl_i].categories[c_i].programs = data;
-				for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
-					platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
-				console.log("category procesed: ",platform.name,category.name);
-				write_to_file();
-			});
+			}
+			data = await load_programs(platform.name.toLowerCase(),category.slug);
+			platforms[pl_i].categories[c_i].programs = data;
+			for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
+				platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
+			console.log("category procesed: ",platform.name,category.name);
+			write_to_file();
 		}
 	}
 	console.log("All categories listed");
