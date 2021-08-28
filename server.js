@@ -223,14 +223,14 @@ async function process_main_categories() {
 						programs:[],
 						id:data._id
 					});					
+					data = await load_programs(platform.name.toLowerCase(),category.slug);
+					platforms[pl_i].categories[c_i].programs = data;
+					for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
+						platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
+					console.log("category procesed: ",platform.name,category.name);
+					write_to_file();
 				})
 			});
-			data = await load_programs(platform.name.toLowerCase(),category.slug);
-			platforms[pl_i].categories[c_i].programs = data;
-			for(let i = 0; i<platforms[pl_i].categories[c_i].categories.length; i++)
-				platforms[pl_i].categories[c_i].categories[i].programs = await load_programs(platform.name, platforms[pl_i].categories[c_i].categories[i].slug);
-			console.log("category procesed: ",platform.name,category.name);
-			write_to_file();
 		}
 	}
 	console.log("All categories listed");
