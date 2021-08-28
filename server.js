@@ -1,6 +1,150 @@
 let cheerio = require("cheerio");
 let fetch = require("node-fetch");
 let fs = require('fs');
+const mongoose = require('mongoose');
+
+let connectDB = async()=>{
+    try{
+        const conn = await mongoose.connect("mongodb+srv://admin:admin@cluster0.hc3j1.mongodb.net/dbname?retryWrites=true&w=majority", {
+            useNewUrlParser: true,
+            useUnifiedTopology:true
+        });
+    }
+    catch(err){
+        console.log(err);
+        process.exit(-1);
+    }
+};
+connectDB();
+
+var schema = new mongoose.Schema({
+    name:{
+        type: String,
+        required: true
+    },
+    platform:{
+        type: String,
+        required: true
+    },
+    parentCategory:{
+        type: String,
+        required: false
+    },
+    slug:{
+        type:String,
+        required:true
+    }
+});
+
+const CategoryDoc = mongoose.model('category_doc', schema);
+schema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    }
+});
+
+const PlatformDoc = mongoose.model('platform_doc', schema);
+schema = new mongoose.Schema({
+    title:{
+        type: String,
+        required: true
+    },
+    description:{
+        type:String,
+        required:true
+    },
+    content:{
+        type:Object,
+        required: true
+    },
+    platform:{
+        type:String,
+        required:true
+    },
+    parentCategory:{
+        type:String,
+        required:true
+    },
+    subCategory:{
+        type:String,
+        required:true
+    },
+    image_url:{
+        type:String,
+        required:true
+    },
+    software_url:{
+        type:String,
+        required:true
+    },
+    downloads:{
+        type:Number,
+        required: true
+    },
+    program_by:{
+        type:String,
+        required:true
+    },
+    license:{
+        type:String,
+        required:true
+    },
+    version:{
+        type:String,
+        required:true
+    },
+    screenshots:{
+        type:Object,
+        required:true
+    },
+    pros:{
+        type:Object,
+        required:true
+    },
+    cons:{
+        type:Object,
+        required:true
+    },
+    rating:{
+        type:Object,
+        required:true
+    },
+    alternate_link:{
+        type:String,
+        required:true
+    },
+    slug:{
+        type:String,
+        required:true
+    }
+});
+
+const ProgramDoc = mongoose.model('program_doc', schema);
+
+let CreateCategory = async (data) => {
+    let category = new CategoryDoc({
+        name: data.name,
+        slug: data.slug,
+        parentCategory: data.parentCategory,
+        platform: data.platform
+    });
+    let output = await category.save(category);
+    console.log(output);
+    return output;
+};
+let CreateProgram = async (data) => {
+    let program = new ProgramDoc(data);
+    let output = await program.save(program);
+    return output;
+};
+let CreatePlatform = async (data) => {
+    let platform = new PlatformDoc({
+        name: data.name
+    });
+    let output = await platform.save(platform);
+    return output;
+};
 
 platforms = [ 
 	{name:"Windows", categories:[]},
@@ -12,20 +156,31 @@ fetch("https://en.download.it/")
 .then((data)=>{ 
 	let $ = cheerio.load(data);
 	platforms.forEach((val, key)=>{
-		$(`#${val.name.toUpperCase()}-cats a`).each(function(){
-			platforms[key].categories.push({
-				name:$(this).text().trim(),
-				slug:$(this).attr("href").split("/").reverse()[0],
-				categories:[],
-				programs:[]
-			});
+		CreatePlatform({name:val.name})
+		.then((data)=>{platforms[key].id=data._id})
+		.then(()=>{
+			$(`#${val.name.toUpperCase()}-cats a`).each(function(){
+				CreateCategory({
+					name:$(this).text().trim(),
+					slug:$(this).attr("href").split("/").reverse()[0],
+					platform:platforms[key].id,
+					parentCategory:""
+				})
+				.then((data)=>{
+					platforms[key].categories.push({
+						name:data.name,
+						slug:data.slug,
+						categories:[],
+						programs:[],
+						id:data._id
+					});
+				})
+			});			
 		});
 	});
-	write_to_file();
 	return process_main_categories();
 })
 .then((data)=>{
-	write_to_file();
 	return process_all_programs();
 })
 .then((data)=>{
@@ -55,11 +210,20 @@ async function process_main_categories() {
 			let data = await ft.text();
 			let $ = cheerio.load(data);
 			$(".flcats a").each(function(){
-				platforms[pl_i].categories[c_i].categories.push({
+				CreateCategory({
 					name:$(this).text().trim(),
 					slug:$(this).attr("href").split("/").reverse()[0],
-					programs:[]
-				});
+					platform:platforms[pl_i].id,
+					parentCategory:platforms[pl_i].categories[c_i].id
+				})
+				.then((data)=>{
+					platforms[pl_i].categories[c_i].categories.push({
+						name:data.name,
+						slug:data.slug,
+						programs:[],
+						id:data._id
+					});					
+				})
 			});
 			data = await load_programs(platform.name.toLowerCase(),category.slug);
 			platforms[pl_i].categories[c_i].programs = data;
@@ -131,6 +295,10 @@ async function process_all_programs() {
 				$ = cheerio.load(data);
 				platforms[i].categories[j].programs[x].software_link = $(".dit-dlbtn").eq(0).attr("href");
 				platforms[i].categories[j].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href");
+				platforms[i].categories[j].programs[x].platform = platforms[i].id;
+				platforms[i].categories[j].programs[x].parentCategory = platforms[i].categories[j].id;
+				platforms[i].categories[j].programs[x].subCategory = "";
+				CreateProgram(platforms[i].categories[j].programs[x]);
 			}
 			write_to_file();
 			for(let k = 0; k<platforms[i].categories[j].categories.length; k++){
@@ -167,6 +335,10 @@ async function process_all_programs() {
 					$ = cheerio.load(data);
 					platforms[i].categories[j].categories[k].programs[x].software_link = $(".dit-dlbtn").eq(0).attr("href");
 					platforms[i].categories[j].categories[k].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href");
+					platforms[i].categories[j].categories[k].programs[x].platform = platforms[i].id;
+					platforms[i].categories[j].categories[k].programs[x].parentCategory = platforms[i].categories[j].id;
+					platforms[i].categories[j].categories[k].programs[x].subCategory = platforms[i].categories[j].categories[k].id;
+					CreateProgram(platforms[i].categories[j].categories[k].programs[x]);
 				}
 				write_to_file();
 			}
