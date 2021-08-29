@@ -52,7 +52,7 @@ schema = new mongoose.Schema({
     },
     description:{
         type:String,
-        required:true
+        required:false
     },
     content:{
         type:Object,
@@ -68,7 +68,7 @@ schema = new mongoose.Schema({
     },
     subCategory:{
         type:String,
-        required:true
+        required:false
     },
     image_url:{
         type:String,
@@ -76,23 +76,23 @@ schema = new mongoose.Schema({
     },
     software_url:{
         type:String,
-        required:true
+        required:false
     },
     downloads:{
         type:Number,
-        required: true
+        required: false
     },
     program_by:{
         type:String,
-        required:true
+        required:false
     },
     license:{
         type:String,
-        required:true
+        required:false
     },
     version:{
         type:String,
-        required:true
+        required:false
     },
     screenshots:{
         type:Object,
@@ -108,11 +108,11 @@ schema = new mongoose.Schema({
     },
     rating:{
         type:Object,
-        required:true
+        required:false
     },
     alternate_link:{
         type:String,
-        required:true
+        required:false
     },
     slug:{
         type:String,
@@ -146,7 +146,7 @@ let CreatePlatform = async (data) => {
     return output;
 };
 
-platforms = [ 
+let platforms = [ 
 	{name:"Windows", categories:[]},
 	{name:"Mac", categories:[]},
 	{name:"Android", categories:[]}
@@ -280,7 +280,7 @@ async function process_all_programs() {
 				$("#prg-screenshots img").each(function(){ ss.push($(this).attr("data-src")); })
 				$("ul").eq(0).children("*").each(function(){ pros.push($(this).text()) })
 				$("ul").eq(1).children("*").each(function(){ cons.push($(this).text()) })
-				$("#prg-review p").each(function(){ if($(this).text()!=="Pros" && $(this).text()!=="Cons") content.push("content:"+$(this).text());})
+				$("#prg-review p").each(function(){ if($(this).text()!=="Pros" && $(this).text()!=="Cons") content.push({value:$(this).text(), type:"content"});})
 				platforms[i].categories[j].programs[x] = {
 				title:$("h1").eq(0).text(),
 				description:$("h2").eq(0).text(),
@@ -291,15 +291,15 @@ async function process_all_programs() {
 				rating:{value:$(".vote-wrapper").eq(0).attr("data-average")/2, count:$(".vote-count").eq(0).text().split(' ')[0].substring(1)},
 				pros:pros,
 				cons:cons,
-				downloads:parseInt($(".vote-count").eq(0).text().split(' ')[0].substring(1).replace(/,/g,'')),
+				downloads:parseInt($(".vote-count").eq(0).text().split(' ')[0].substring(1).replace(/,/g,'')) || 0,
 				slug:link.split("//")[1].split(".")[0],
 				screenshots:ss,
 				image_url:$("#prg-main img").eq(0).attr("src")};
 				ft = await fetch(`https://${platforms[i].categories[j].programs[x].slug}.en.download.it/download`);
 				data = await ft.text();
 				$ = cheerio.load(data);
-				platforms[i].categories[j].programs[x].software_link = $(".dit-dlbtn").eq(0).attr("href");
-				platforms[i].categories[j].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href");
+				platforms[i].categories[j].programs[x].software_url = $(".ddlbtn a").eq(0).attr("href");
+				platforms[i].categories[j].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href") || platforms[i].categories[j].programs[x].software_url;
 				platforms[i].categories[j].programs[x].platform = platforms[i].id;
 				platforms[i].categories[j].programs[x].parentCategory = platforms[i].categories[j].id;
 				platforms[i].categories[j].programs[x].subCategory = "";
@@ -320,7 +320,7 @@ async function process_all_programs() {
 					$("#prg-screenshots img").each(function(){ ss.push($(this).attr("data-src")); })
 					$("ul").eq(0).children("*").each(function(){ pros.push($(this).text()) })
 					$("ul").eq(1).children("*").each(function(){ cons.push($(this).text()) })
-					$("#prg-review p").each(function(){ if($(this).text()!=="Pros" && $(this).text()!=="Cons") content.push("content:"+$(this).text());})
+					$("#prg-review p").each(function(){ if($(this).text()!=="Pros" && $(this).text()!=="Cons") content.push( {value:$(this).text(), type:"content"} ) })
 					platforms[i].categories[j].categories[k].programs[x] = {
 					title:$("h1").eq(0).text(),
 					description:$("h2").eq(0).text(),
@@ -331,15 +331,15 @@ async function process_all_programs() {
 					rating:{value:$(".vote-wrapper").eq(0).attr("data-average")/2, count:$(".vote-count").eq(0).text().split(' ')[0].substring(1)},
 					pros:pros,
 					cons:cons,
-					downloads:parseInt($(".vote-count").eq(0).text().split(' ')[0].substring(1).replace(/,/g,'')),
+					downloads:parseInt($(".vote-count").eq(0).text().split(' ')[0].substring(1).replace(/,/g,'')) || 0,
 					slug:link.split("//")[1].split(".")[0],
 					screenshots:ss,
 					image_url:$("#prg-main img").eq(0).attr("src")};
 					ft = await fetch(`https://${platforms[i].categories[j].categories[k].programs[x].slug}.en.download.it/download`);
 					data = await ft.text();
 					$ = cheerio.load(data);
-					platforms[i].categories[j].categories[k].programs[x].software_link = $(".dit-dlbtn").eq(0).attr("href");
-					platforms[i].categories[j].categories[k].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href");
+					platforms[i].categories[j].categories[k].programs[x].software_url = $(".ddlbtn a").eq(0).attr("href");
+					platforms[i].categories[j].categories[k].programs[x].alternate_link = $(".dit-dlbt-notes a").eq(0).attr("href") || platforms[i].categories[j].categories[k].programs[x].software_url;
 					platforms[i].categories[j].categories[k].programs[x].platform = platforms[i].id;
 					platforms[i].categories[j].categories[k].programs[x].parentCategory = platforms[i].categories[j].id;
 					platforms[i].categories[j].categories[k].programs[x].subCategory = platforms[i].categories[j].categories[k].id;
