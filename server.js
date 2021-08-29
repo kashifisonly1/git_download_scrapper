@@ -155,30 +155,14 @@ fetch("https://en.download.it/")
 .then((res)=>res.text())
 .then((data)=>{ 
 	let $ = cheerio.load(data);
+	let list_of_processes = [];
 	platforms.forEach((val, key)=>{
-		CreatePlatform({name:val.name})
-		.then((data)=>{platforms[key].id=data._id})
-		.then(()=>{
-			$(`#${val.name.toUpperCase()}-cats a`).each(function(){
-				CreateCategory({
-					name:$(this).text().trim(),
-					slug:$(this).attr("href").split("/").reverse()[0],
-					platform:platforms[key].id,
-					parentCategory:""
-				})
-				.then((data)=>{
-					platforms[key].categories.push({
-						name:data.name,
-						slug:data.slug,
-						categories:[],
-						programs:[],
-						id:data._id
-					});
-				})
-			});			
-		});
+		list_of_processes.push(process_main_page($, val, key));
 	});
-	return process_main_categories();
+	return Promise.all(list_of_processes);
+})
+.then((data)=>{
+	return process_main_categories();	
 })
 .then((data)=>{
 	return process_all_programs();
@@ -197,6 +181,28 @@ function write_to_file() {
 	    }
 	 	console.log("JSON file has been saved.");
 	});	
+}
+
+
+async function process_main_page($, val, key) {
+	let data = await CreatePlatform({name:val.name});
+	platforms[key].id=data._id;
+	let plt = $(`#${val.name.toUpperCase()}-cats a`);
+	for(let pls = 0; pls<plt.length; pls++){
+		let data = await CreateCategory({
+			name:$(plt[pls]).text().trim(),
+			slug:$(plt[pls]).attr("href").split("/").reverse()[0],
+			platform:platforms[key].id,
+			parentCategory:""
+		});
+		platforms[key].categories.push({
+			name:data.name,
+			slug:data.slug,
+			categories:[],
+			programs:[],
+			id:data._id
+		});
+	}
 }
 
 async function process_main_categories() {
